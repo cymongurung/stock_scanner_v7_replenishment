@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>The Deal Stock Scanner</title>
+  <link rel="stylesheet" href="style.css?v=7">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
+          onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';document.head.appendChild(s);"></script>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">THE DEAL<span>Stock Scanner</span></div>
+    <button class="nav active" data-page="scanner">⌕ <span>Scanner</span></button>
+    <button class="nav" data-page="upload">⇧ <span>Upload Data</span></button>
+    <button class="nav" data-page="qr">▦ <span>QR Code Maker</span></button>
+    <button class="nav" data-page="status">▣ <span>Data Status</span></button>
+    <button class="nav" data-page="analyze">◔ <span>Analyze Data</span></button>
+    <button class="nav" data-page="replenish">↻ <span>Replenishment</span></button>
+  </aside>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <div>
+        <h1 id="pageTitle">Stock Scanner</h1>
+        <p id="topDate">No data loaded</p>
+      </div>
+    </header>
+
+    <section class="page active" id="scannerPage">
+      <div class="scanner-card">
+        <div class="card-header-actions">
+          <button class="primary big" id="openScanner">📷 Scan Barcode</button>
+          <button class="voice-btn active" id="voiceToggle" title="Toggle Audio Voice Dictation">
+            🔊 Voice: ON
+          </button>
+        </div>
+        
+        <div id="reader" class="reader hidden"></div>
+        <div class="zoom-status" id="zoomStatus">Camera ready • 2× zoom will be used when supported</div>
+
+        <div class="or"><span>OR</span></div>
+
+        <div class="search-row">
+          <input id="searchInput" type="text" inputmode="text"
+                 placeholder="Enter barcode or Product ID" autocomplete="off">
+          <button class="primary" id="searchBtn">Search</button>
+        </div>
+        <p class="hint">Scan once, view the result, then choose whether to see related items.</p>
+
+        <div class="or"><span>OR MANUAL LOOKUP</span></div>
+
+        <div class="search-row">
+          <input id="keywordInput" type="text" inputmode="text"
+                 placeholder="Type keywords, e.g. black sneaker" autocomplete="off">
+          <button class="primary" id="keywordBtn">Find</button>
+        </div>
+        <p class="hint">Partial words work, in any order. Searches description, brand and VPN. Tap a result to see details.</p>
+      </div>
+
+      <div id="resultArea"></div>
+    </section>
+
+    <section class="page" id="uploadPage">
+      <div class="panel">
+        <h2>Upload today's SOH file</h2>
+        <p>Select the new CSV received from your store email. The current inventory on this browser will be replaced.</p>
+
+        <div class="dropzone" id="dropzone">
+          <div class="upload-icon">⇧</div>
+          <strong>Choose CSV file</strong>
+          <span>or drag and drop it here</span>
+          <input type="file" id="csvFile" accept=".csv,text/csv">
+          <button class="secondary" id="chooseFile">Choose File</button>
+        </div>
+
+        <div id="uploadMessage" class="message hidden"></div>
+      </div>
+    </section>
+
+    <section class="page" id="qrPage">
+      <div class="panel">
+        <h2>QR Code Maker</h2>
+        <p>Copy an item description or barcode, paste it below, then tap Make QR Code.</p>
+
+        <textarea id="qrInput" class="qr-input" rows="4" placeholder="Paste item details or barcode here"></textarea>
+        <button class="primary big" id="qrMake">Make QR Code</button>
+
+        <div id="qrPreview" class="qr-preview hidden">
+          <img id="qrImg" alt="QR code preview">
+          <p class="hint" id="qrCaption"></p>
+          <div class="modal-actions">
+            <button class="secondary" id="qrCancel">Cancel</button>
+            <button class="primary" id="qrSave">Save</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="analyzePage">
+      <div class="panel">
+        <h2>Analyze Data</h2>
+        <p class="hint" style="margin:0 0 16px">Find the cheapest or best items in the store. The list updates as you change a filter. Tap an item to see its full details.</p>
+
+        <div class="an-grid">
+          <label>Division<select id="anDivision"></select></label>
+          <label>Category (Department)<select id="anDepartment"></select></label>
+          <label>Brand<select id="anBrand"></select></label>
+          <label>Sort by
+            <select id="anSort">
+              <option value="cheap">Cheapest first</option>
+              <option value="expensive">Most expensive first</option>
+              <option value="stock">Highest stock first</option>
+              <option value="sold">Most sold first</option>
+            </select>
+          </label>
+          <label>Min price (AED)<input id="anMin" type="number" inputmode="decimal" min="0" placeholder="0"></label>
+          <label>Max price (AED)<input id="anMax" type="number" inputmode="decimal" min="0" placeholder="Any"></label>
+          <label>Consignment
+            <select id="anConsign">
+              <option value="all">Show all</option>
+              <option value="exclude">Exclude consignment</option>
+              <option value="only">Only consignment</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="an-checks">
+          <label><input type="checkbox" id="anInStock" checked> In stock only</label>
+          <label><input type="checkbox" id="anHideNonSale" checked> Hide bags, boxes &amp; non-sale items</label>
+          <label><input type="checkbox" id="anGroup" checked> One row per style &amp; colour (sizes grouped)</label>
+        </div>
+
+        <button class="secondary" id="anReset" style="width:100%;margin-top:12px">Reset filters</button>
+      </div>
+
+      <div id="analyzeResult"></div>
+    </section>
+
+    <section class="page" id="replenishPage">
+      <div class="panel">
+        <h2>Replenishment Check</h2>
+        <p class="hint" style="margin:0 0 16px">Choose yesterday's and today's SOH files. Any size that lost stock counts as sold. The list shows which styles to check on display, and which sizes you still have to replace them.</p>
+
+        <div class="rp-files">
+          <div class="rp-file" id="rpPrevBox">
+            <strong>Yesterday's file</strong>
+            <span id="rpPrevInfo">No file chosen</span>
+            <input type="file" id="rpPrevFile" accept=".csv,text/csv" hidden>
+            <button class="secondary" id="rpPrevBtn">Choose File</button>
+          </div>
+          <div class="rp-file" id="rpTodayBox">
+            <strong>Today's file</strong>
+            <span id="rpTodayInfo">No file chosen</span>
+            <input type="file" id="rpTodayFile" accept=".csv,text/csv" hidden>
+            <button class="secondary" id="rpTodayBtn">Choose File</button>
+          </div>
+        </div>
+        <div id="rpMsg" class="message hidden"></div>
+
+        <div id="rpFilters" class="hidden">
+          <div class="an-grid" style="margin-top:18px">
+            <label>Category (Department)<select id="rpDept"></select></label>
+            <label>Brand<select id="rpBrand"></select></label>
+            <label>Sort by
+              <select id="rpSort">
+                <option value="sold">Most sold first</option>
+                <option value="brand">Brand A–Z</option>
+                <option value="stock">Most stock left first</option>
+              </select>
+            </label>
+          </div>
+          <div class="an-checks">
+            <label><input type="checkbox" id="rpOnlyStock" checked> Only styles that still have stock to replace</label>
+            <label><input type="checkbox" id="rpHideNonSale" checked> Hide bags, boxes &amp; non-sale items</label>
+          </div>
+        </div>
+      </div>
+
+      <div id="rpResult"></div>
+    </section>
+
+    <section class="page" id="statusPage">
+      <div class="panel">
+        <h2>Current Inventory</h2>
+        <div class="status-grid" id="statusGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal hidden" id="replaceModal">
+    <div class="modal-card">
+      <h2>Replace Current Inventory?</h2>
+      <p class="modal-warning">The current inventory will be replaced by this new SOH file.</p>
+      <div class="compare-box">
+        <div><span>Current data</span><strong id="currentUploadInfo">—</strong></div>
+        <div><span>New data</span><strong id="newUploadInfo">—</strong></div>
+        <div><span>New file</span><strong id="newFileInfo">—</strong></div>
+      </div>
+      <div class="modal-actions">
+        <button class="secondary" id="cancelReplace">Cancel</button>
+        <button class="primary" id="confirmReplace">Replace & Update</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="app.js?v=7"></script>
+</body>
+</html>
